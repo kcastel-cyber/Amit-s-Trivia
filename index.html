@@ -1,14 +1,19 @@
-
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>הרפתקת הפתגמים הגדולה</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Lexend:wght@400;700;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -34,6 +39,7 @@
             },
         }
     </script>
+    
     <style>
         body {
             font-family: 'Assistant', sans-serif;
@@ -78,18 +84,125 @@
           animation: fadeIn 0.5s ease-out forwards;
         }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
-  }
-}
-</script>
 </head>
-<body class="bg-background-light dark:bg-background-dark overflow-x-hidden">
+<body class="bg-background-light dark:bg-background-dark overflow-x-hidden text-slate-900">
     <div id="root"></div>
-</body>
-</html>
+
+    <script type="text/babel">
+        // --- שירותים (Services) ---
+
+        // Confetti
+        const triggerConfetti = () => {
+            if (typeof window.confetti === 'function') {
+                window.confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#eebd2b', '#8EC5FC', '#E0C3FC', '#ffffff']
+                });
+            }
+        };
+
+        // Audio Service
+        class AudioService {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playCorrect() {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+            playIncorrect() {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+        }
+        const audioService = new AudioService();
+
+        // --- שאלות (Data) ---
+        const TRIVIA_QUESTIONS = [
+            {
+                id: 1,
+                text: "איזה פתגם מסתתר בתמונה של כוס המים?",
+                options: ["מים שקטים חודרים עמוק", "לראות את חצי הכוס המלאה", "כל עכבה לטובה", "בור סוד שאינו מאבד טיפה"],
+                correctAnswer: 1,
+                explanation: "לראות את חצי הכוס המלאה פירושו להסתכל על הצד החיובי של הדברים.",
+                category: "פתגמים בתמונות"
+            },
+            {
+                id: 2,
+                text: "גיל הפסיד במשחק כדורגל והיה עצוב. אמיר אמר לו: 'זה הכל בגללך!'. מה אמיר עשה לגיל?",
+                options: ["הוסיף שמן למדורה", "זרה מלח על הפצעים", "הכה על חטא", "נתן לו כתף קרה"],
+                correctAnswer: 1,
+                explanation: "לזרות מלח על הפצעים זה להכאיב למישהו שכבר כואב לו.",
+                category: "סיפורים"
+            },
+            {
+                id: 3,
+                text: "סבתא של מאיה רצתה לאפות עוגה. בפעם הראשונה היא נשרפה, אבל בפעם השנייה היא כבר ידעה לכוון את התנור נכון. איזה פתגם מתאים כאן?",
+                options: ["אין חכם כבעל ניסיון", "סוף מעשה במחשבה תחילה", "עדיף מאוחר מאשר לעולם לא", "החיפזון מהשטן"],
+                correctAnswer: 0,
+                explanation: "מי שכבר עשה או חווה משהו - יודע עליו יותר. לומדים מהניסיון.",
+                category: "סיפורים"
+            },
+            {
+                id: 4,
+                text: "מהו הפירוש של הפתגם 'אין עשן בלי אש'?",
+                options: ["שצריך להיזהר משריפות", "שכל שמועה או דבר רע כנראה מבוססים על קצת אמת", "שתמיד צריך לבדוק את התנור", "שקשה לראות דרך עשן"],
+                correctAnswer: 1,
+                explanation: "אם שומעים שמועה, כנראה שיש בה לפחות קצת אמת. העשן מסמל את השמועה והאש את האמת.",
+                category: "הסברים"
+            },
+            {
+                id: 5,
+                text: "נייה ארזה מטריה בתיק למרות שהיה שמש, ובצהריים התחיל גשם. איך אפשר לתאר את נייה?",
+                options: ["היא קפצה מעל הפופיק", "היא רואה את הנולד", "היא הולכת בין הטיפות", "היא בנתה ארמונות בחול"],
+                correctAnswer: 1,
+                explanation: "רואה את הנולד הוא אדם שמבין מה עלול לקרות בעתיד ויודע לחשוב קדימה.",
+                category: "דוגמאות"
+            },
+            {
+                id: 6,
+                text: "מה פירוש הביטוי 'פגע בציפור נפשו'?",
+                options: ["פגע במישהו במקום הכי חשוב ורגיש לו", "עזר לציפור פצועה", "הצליח במשימה קשה מאוד", "נבהל מאוד ממשהו"],
+                correctAnswer: 0,
+                explanation: "לפגוע בציפור נפשו של מישהו זה לפגוע בו במקום הכי רגיש וכואב בלב.",
+                category: "הסברים"
+            }
+        ];
+
+        // --- רכיבים (Components) ---
+
+        // Welcome Screen
+        const WelcomeScreen = ({ onStart }) => {
+            return (
+                <div className="relative flex min-h-screen w-full flex-col items-center justify-center p-6 bg-pattern">
+                    <div className="floating relative w-64 h-64 md:w-80 md:h-80 mb-8">
+                        <div className="absolute inset-4 bg-white/40 rounded-full blur-xl"></div>
