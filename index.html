@@ -166,7 +166,7 @@
             },
             {
                 id: 3,
-                text: "סבתא של מאיה רצתה לאפות עוגה. בפעם הראשונה היא נשרפה, אבל בפעם השנייה היא כבר ידעה לכוון את התנור נכון. איזה פתגם מתאים כאן?",
+                text: "סבתא של מאיה רצתה לאפות עוגה. בפעם הראשונה היא נשרפה, אבל בפעם השנייה היא כבר ידעה לכוון את התנור נכון.",
                 options: ["אין חכם כבעל ניסיון", "סוף מעשה במחשבה תחילה", "עדיף מאוחר מאשר לעולם לא", "החיפזון מהשטן"],
                 correctAnswer: 0,
                 explanation: "מי שכבר עשה או חווה משהו - יודע עליו יותר. לומדים מהניסיון.",
@@ -175,7 +175,7 @@
             {
                 id: 4,
                 text: "מהו הפירוש של הפתגם 'אין עשן בלי אש'?",
-                options: ["שצריך להיזהר משריפות", "שכל שמועה או דבר רע כנראה מבוססים על קצת אמת", "שתמיד צריך לבדוק את התנור", "שקשה לראות דרך עשן"],
+                options: ["שצריך להיזהר משריפות", "שכל שמועה או דבר רע כנראה מבוססים על קצת אמת", "שתמיד צריך לבדוק את התנור", "שהאש תמיד גורמת לעשן"],
                 correctAnswer: 1,
                 explanation: "אם שומעים שמועה, כנראה שיש בה לפחות קצת אמת. העשן מסמל את השמועה והאש את האמת.",
                 category: "הסברים"
@@ -200,9 +200,173 @@
 
         // --- רכיבים (Components) ---
 
+        const { useState } = React;
+
         // Welcome Screen
         const WelcomeScreen = ({ onStart }) => {
             return (
                 <div className="relative flex min-h-screen w-full flex-col items-center justify-center p-6 bg-pattern">
-                    <div className="floating relative w-64 h-64 md:w-80 md:h-80 mb-8">
-                        <div className="absolute inset-4 bg-white/40 rounded-full blur-xl"></div>
+                    <div className="floating relative w-56 h-56 md:w-72 md:h-72 mb-6">
+                        <div className="absolute inset-0 bg-white/30 rounded-full blur-xl"></div>
+                        <div className="relative z-10 flex items-center justify-center w-full h-full">
+                            <h1 className="text-3xl md:text-5xl font-display font-bold text-slate-900">הרפתקת הפתגמים</h1>
+                        </div>
+                    </div>
+                    <p className="mb-6 text-center max-w-xl">התכונני לחידון קצר על פתגם ומשמעותו. לכל שאלה יש תשובות — בחרי את התשובה הנכונה. בהצלחה!</p>
+                    <button
+                        onClick={onStart}
+                        className="px-6 py-3 rounded-full bg-primary text-white font-semibold shadow-game hover:bg-primary-hover active:shadow-game-active"
+                    >
+                        התחל את המשחק
+                    </button>
+                </div>
+            );
+        };
+
+        // Question Card
+        const QuestionCard = ({ question, onAnswer }) => {
+            const [selected, setSelected] = useState(null);
+            const [submitted, setSubmitted] = useState(false);
+
+            const handleSelect = (idx) => {
+                if (submitted) return;
+                setSelected(idx);
+            };
+
+            const handleSubmit = () => {
+                if (selected === null) return;
+                const isCorrect = selected === question.correctAnswer;
+                setSubmitted(true);
+                onAnswer(isCorrect);
+            };
+
+            return (
+                <div className="max-w-2xl w-full mx-auto p-6 bg-white/80 dark:bg-slate-800 rounded-xl shadow-lg animate-fadeIn">
+                    <div className="mb-4">
+                        <div className="text-sm text-slate-600 mb-1">קטגוריה: {question.category}</div>
+                        <div className="text-xl md:text-2xl font-semibold">{question.text}</div>
+                    </div>
+                    <div className="grid gap-3">
+                        {question.options.map((opt, i) => {
+                            const isChosen = selected === i;
+                            const isCorrect = submitted && i === question.correctAnswer;
+                            const wrongChosen = submitted && isChosen && !isCorrect;
+                            const baseClass = "text-right p-3 rounded-md border transition";
+                            const className = [
+                                baseClass,
+                                isChosen ? "border-primary bg-primary/10" : "border-slate-200 bg-white",
+                                isCorrect ? "border-green-500 bg-green-50" : "",
+                                wrongChosen ? "border-red-500 bg-red-50" : ""
+                            ].join(" ");
+                            return (
+                                <button
+                                    key={i}
+                                    onClick={() => handleSelect(i)}
+                                    className={className}
+                                >
+                                    {opt}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between">
+                        <div>
+                            {!submitted ? (
+                                <button
+                                    onClick={handleSubmit}
+                                    className="px-4 py-2 bg-primary text-white rounded-full"
+                                >
+                                    אשר תשובה
+                                </button>
+                            ) : (
+                                <div className="text-sm text-slate-700">
+                                    {selected === question.correctAnswer ? (
+                                        <span className="text-green-600 font-semibold">נכון! </span>
+                                    ) : (
+                                        <span className="text-red-600 font-semibold">לא נכון. </span>
+                                    )}
+                                    <span className="block mt-1 text-sm">{question.explanation}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App
+        const App = () => {
+            const [started, setStarted] = useState(false);
+            const [index, setIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [finished, setFinished] = useState(false);
+
+            const startGame = () => {
+                setStarted(true);
+                setIndex(0);
+                setScore(0);
+                setFinished(false);
+            };
+
+            const handleAnswer = (isCorrect) => {
+                if (isCorrect) {
+                    setScore((s) => s + 1);
+                    audioService.playCorrect();
+                    // small delay then confetti for correct answers
+                    setTimeout(() => triggerConfetti(), 150);
+                } else {
+                    audioService.playIncorrect();
+                }
+                // advance to next question after a short pause to allow user to read feedback
+                setTimeout(() => {
+                    if (index + 1 < TRIVIA_QUESTIONS.length) {
+                        setIndex((i) => i + 1);
+                    } else {
+                        setFinished(true);
+                    }
+                }, 1200);
+            };
+
+            if (!started) {
+                return <WelcomeScreen onStart={startGame} />;
+            }
+
+            if (finished) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6 bg-pattern">
+                        <div className="max-w-xl w-full text-center bg-white/90 dark:bg-slate-800 p-6 rounded-xl shadow-lg">
+                            <h2 className="text-2xl font-bold mb-4">תוצאות סופיות</h2>
+                            <p className="mb-4 text-lg">ניקודך: <span className="font-semibold">{score}</span> מתוך {TRIVIA_QUESTIONS.length}</p>
+                            <button
+                                onClick={() => { startGame(); triggerConfetti(); }}
+                                className="px-5 py-3 bg-primary text-white rounded-full"
+                            >
+                                שחק שוב
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            const currentQuestion = TRIVIA_QUESTIONS[index];
+
+            return (
+                <div className="min-h-screen p-6 bg-pattern">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="text-sm text-slate-600">שאלה {index + 1} מתוך {TRIVIA_QUESTIONS.length}</div>
+                            <div className="text-sm text-slate-700">ניקוד: {score}</div>
+                        </div>
+                        <QuestionCard question={currentQuestion} onAnswer={handleAnswer} />
+                    </div>
+                </div>
+            );
+        };
+
+        // Render
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
